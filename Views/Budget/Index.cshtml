@@ -1,0 +1,186 @@
+@using PennyWise.ViewModels
+@using PennyWise.Models
+@{
+    ViewData["Title"] = "Limitler & Hedefler";
+    var budgetStatuses = ViewBag.BudgetStatuses as List<BudgetStatusViewModel> ?? new();
+    var goals          = ViewBag.Goals as List<SavingsGoal> ?? new();
+}
+
+<div class="space-y-6">
+    <div>
+        <h2 class="text-3xl font-bold text-slate-900 tracking-tight">Limitler & Tasarruf Hedefleri</h2>
+        <p class="text-slate-500 text-sm mt-1">Harcamalarınızı limitleyin ve hayalleriniz için tasarruf hedefleri belirleyin.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- BÜTÇE LİMİTLERİ -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-5">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold text-slate-800">Aylık Kategori Limitleri</h3>
+                <button onclick="document.getElementById('modal-budget').classList.remove('hidden')"
+                        class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg font-semibold text-slate-700 flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-plus text-slate-500"></i> Limit Belirle
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                @foreach (var bs in budgetStatuses)
+                {
+                    <div class="p-4 rounded-xl border space-y-2 @(bs.IsOverLimit ? "bg-rose-50/50 border-rose-100" : "bg-slate-50/50 border-slate-100")">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="font-bold text-slate-700 flex items-center gap-2">
+                                <i class="fa-solid @(bs.Budget.Category?.Icon ?? "fa-tag")" style="color: @(bs.Budget.Category?.Color ?? "#64748b")"></i>
+                                @bs.Budget.Category?.Name
+                            </span>
+                            <span class="text-xs @(bs.IsOverLimit ? "text-rose-600 font-bold" : "text-slate-500")">
+                                @bs.TotalSpent.ToString("N2") / @bs.Budget.MonthlyLimit.ToString("N2") ₺
+                            </span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5">
+                            <div class="h-2.5 rounded-full @(bs.IsOverLimit ? "bg-rose-500" : "bg-emerald-500")"
+                                 style="width: @bs.Percent%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-slate-400">
+                            <span>%@bs.Percent Harcandı</span>
+                            <span class="@(bs.IsOverLimit ? "text-rose-600 font-bold" : "")">
+                                @(bs.IsOverLimit ? "⚠️ Limiti Aştınız!" : "Limit Uygun")
+                            </span>
+                        </div>
+                        <form asp-action="DeleteBudget" method="post" class="text-right">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@bs.Budget.Id"/>
+                            <button type="submit" class="text-xs text-rose-400 hover:text-rose-600">Limiti Kaldır</button>
+                        </form>
+                    </div>
+                }
+                @if (!budgetStatuses.Any())
+                {
+                    <p class="text-sm text-slate-400 text-center py-8">Henüz limit tanımlanmamış.</p>
+                }
+            </div>
+        </div>
+
+        <!-- TASARRUF HEDEFLERİ -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-5">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold text-slate-800">Tasarruf Hedefleri</h3>
+                <button onclick="document.getElementById('modal-goal').classList.remove('hidden')"
+                        class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg font-semibold text-slate-700 flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-plus text-slate-500"></i> Hedef Belirle
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                @foreach (var g in goals)
+                {
+                    <div class="p-4 rounded-xl border border-slate-100 bg-slate-50/50 space-y-3">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">@g.Name</h4>
+                                <span class="text-xs text-slate-400">Hedef: @g.TargetAmount.ToString("N2") ₺</span>
+                            </div>
+                            <div class="flex gap-1">
+                                <button onclick="document.getElementById('fund-@g.Id').classList.remove('hidden')"
+                                        class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs px-2 py-1 rounded-md font-semibold transition flex items-center gap-1">
+                                    <i class="fa-solid fa-plus"></i> Para Ekle
+                                </button>
+                                <form asp-action="DeleteGoal" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@g.Id"/>
+                                    <button type="submit" class="text-rose-500 hover:text-rose-700 p-1 bg-white border border-slate-100 rounded-md">
+                                        <i class="fa-solid fa-trash-can text-xs"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        <!-- Para ekleme formu (gizli) -->
+                        <form id="fund-@g.Id" asp-action="AddFund" method="post" class="hidden flex gap-2 items-center mt-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@g.Id"/>
+                            <input type="number" name="amount" step="1" min="1" placeholder="Tutar (₺)"
+                                   class="flex-1 px-2 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-emerald-400"/>
+                            <button type="submit" class="bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold">Ekle</button>
+                        </form>
+                        <div class="space-y-1">
+                            <div class="w-full bg-slate-200 rounded-full h-2">
+                                <div class="bg-emerald-500 h-2 rounded-full" style="width: @g.ProgressPercent%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-slate-500 font-semibold">
+                                <span>%@g.ProgressPercent Tamamlandı</span>
+                                <span>Biriken: @g.CurrentAmount.ToString("N2") ₺</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (!goals.Any())
+                {
+                    <p class="text-sm text-slate-400 text-center py-8">Henüz hedef yok.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: LİMİT EKLE -->
+<div id="modal-budget" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        <div class="p-6 bg-slate-900 text-white flex justify-between items-center">
+            <h3 class="font-bold text-lg">Aylık Limit Belirle</h3>
+            <button onclick="document.getElementById('modal-budget').classList.add('hidden')" class="text-slate-300 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+        <form asp-action="Create" method="post" class="p-6 space-y-4">
+            @Html.AntiForgeryToken()
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">Kategori</label>
+                <select name="CategoryId" required asp-items="ViewBag.Categories"
+                        class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-emerald-400 bg-white">
+                    <option value="">Seçiniz...</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">Aylık Limit (₺)</label>
+                <input type="number" step="1" min="1" name="MonthlyLimit" required placeholder="Aylık en fazla harcanacak tutar"
+                       class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-emerald-400"/>
+            </div>
+            <button type="submit" class="w-full bg-slate-950 hover:bg-slate-800 text-white py-2.5 rounded-lg font-bold text-sm transition">
+                Limit Tanımla
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: HEDEF EKLE -->
+<div id="modal-goal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        <div class="p-6 bg-slate-900 text-white flex justify-between items-center">
+            <h3 class="font-bold text-lg">Yeni Hedef Ekle</h3>
+            <button onclick="document.getElementById('modal-goal').classList.add('hidden')" class="text-slate-300 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+        <form asp-action="CreateGoal" method="post" class="p-6 space-y-4">
+            @Html.AntiForgeryToken()
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">Hedef Adı</label>
+                <input type="text" name="Name" required placeholder="Örn: Yeni Bilgisayar, Tatil..."
+                       class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-emerald-400"/>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">Hedeflenen Tutar (₺)</label>
+                <input type="number" step="1" min="1" name="TargetAmount" required
+                       class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-emerald-400"/>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">Başlangıç Birikimi (₺)</label>
+                <input type="number" step="1" min="0" name="CurrentAmount" value="0"
+                       class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-emerald-400"/>
+            </div>
+            <button type="submit" class="w-full bg-slate-950 hover:bg-slate-800 text-white py-2.5 rounded-lg font-bold text-sm transition">
+                Hedef Oluştur
+            </button>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,76 @@
+@{
+    ViewData["Title"] = "Admin Paneli";
+}
+
+<div class="space-y-6">
+    <div>
+        <h2 class="text-3xl font-bold text-slate-900 tracking-tight">Admin Paneli</h2>
+        <p class="text-slate-500 text-sm mt-1">Tüm kullanıcı ve işlem istatistikleri.</p>
+    </div>
+
+    <!-- Özet Kartları -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm text-center">
+            <div class="text-3xl font-bold text-slate-800">@ViewBag.TotalUsers</div>
+            <div class="text-xs text-slate-400 uppercase tracking-wider mt-1">Toplam Kullanıcı</div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm text-center">
+            <div class="text-3xl font-bold text-slate-800">@ViewBag.TotalTransactions</div>
+            <div class="text-xs text-slate-400 uppercase tracking-wider mt-1">Toplam İşlem</div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm text-center">
+            <div class="text-3xl font-bold text-emerald-600">@(((decimal)ViewBag.TotalIncome).ToString("N0")) ₺</div>
+            <div class="text-xs text-slate-400 uppercase tracking-wider mt-1">Toplam Gelir</div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm text-center">
+            <div class="text-3xl font-bold text-rose-500">@(((decimal)ViewBag.TotalExpense).ToString("N0")) ₺</div>
+            <div class="text-xs text-slate-400 uppercase tracking-wider mt-1">Toplam Gider</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Kullanıcı Listesi -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <h4 class="font-bold text-slate-800 mb-4">Kayıtlı Kullanıcılar</h4>
+            <ul class="divide-y divide-slate-100">
+                @foreach (var u in (ViewBag.Users as List<Microsoft.AspNetCore.Identity.IdentityUser> ?? new()))
+                {
+                    <li class="py-3 flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold">
+                            @(u.Email?.Substring(0, 2).ToUpper() ?? "??")
+                        </div>
+                        <span class="text-sm text-slate-700 truncate">@u.Email</span>
+                    </li>
+                }
+            </ul>
+        </div>
+
+        <!-- Son İşlemler -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2">
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="font-bold text-slate-800">Son 10 İşlem (Tüm Kullanıcılar)</h4>
+                <a asp-action="AllTransactions" class="text-xs text-emerald-600 font-semibold">Tümünü Gör</a>
+            </div>
+            <ul class="divide-y divide-slate-100">
+                @foreach (var t in (ViewBag.RecentTransactions as List<PennyWise.Models.Transaction> ?? new()))
+                {
+                    <li class="py-3 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs"
+                                 style="background-color: @(t.Category?.Color ?? "#64748b")">
+                                <i class="fa-solid @(t.Category?.Icon ?? "fa-tag")"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-slate-800">@t.Description</p>
+                                <span class="text-xs text-slate-400">@t.TransactionDate.ToString("dd.MM.yyyy")</span>
+                            </div>
+                        </div>
+                        <span class="font-bold text-sm @(t.Type == PennyWise.Models.TransactionType.Gelir ? "text-emerald-500" : "text-rose-500")">
+                            @(t.Type == PennyWise.Models.TransactionType.Gelir ? "+" : "-")@t.Amount.ToString("N2") ₺
+                        </span>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>

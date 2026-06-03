@@ -1,0 +1,89 @@
+@model List<PennyWise.Models.Transaction>
+@{
+    ViewData["Title"] = "Tüm İşlemler";
+    var users = ViewBag.Users as List<Microsoft.AspNetCore.Identity.IdentityUser> ?? new();
+    var selectedUserId = ViewBag.UserId as string;
+}
+
+<div class="space-y-6">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <h2 class="text-3xl font-bold text-slate-900 tracking-tight">Tüm İşlemler</h2>
+            <p class="text-slate-500 text-sm mt-1">Sistemdeki tüm kullanıcı işlemlerini görüntüleyin.</p>
+        </div>
+        <a asp-action="Index" class="text-sm text-emerald-600 font-semibold hover:text-emerald-700">
+            <i class="fa-solid fa-arrow-left mr-1"></i> Admin Paneline Dön
+        </a>
+    </div>
+
+    <form method="get" asp-action="AllTransactions">
+        <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+            <label class="text-sm font-semibold text-slate-600 shrink-0">Kullanıcı:</label>
+            <select name="userId" class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none bg-white">
+                <option value="">Tüm Kullanıcılar</option>
+                @foreach (var u in users)
+                {
+                    if (selectedUserId == u.Id)
+                    {
+                        <option value="@u.Id" selected>@u.Email</option>
+                    }
+                    else
+                    {
+                        <option value="@u.Id">@u.Email</option>
+                    }
+                }
+            </select>
+            <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                Filtrele
+            </button>
+            <a asp-action="AllTransactions" class="text-slate-500 hover:text-slate-800 text-sm font-medium">Temizle</a>
+        </div>
+    </form>
+
+    <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs font-bold uppercase">
+                        <th class="p-4">Kullanıcı</th>
+                        <th class="p-4">Açıklama</th>
+                        <th class="p-4">Kategori</th>
+                        <th class="p-4">Tür</th>
+                        <th class="p-4">Tarih</th>
+                        <th class="p-4 text-right">Tutar</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                    @foreach (var t in Model)
+                    {
+                        var userEmail = users.FirstOrDefault(u => u.Id == t.UserId)?.Email ?? t.UserId;
+                        <tr class="hover:bg-slate-50/50 transition">
+                            <td class="p-4 text-slate-500 text-xs truncate max-w-[140px]">@userEmail</td>
+                            <td class="p-4 font-semibold text-slate-800">@t.Description</td>
+                            <td class="p-4">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold text-white"
+                                      style="background-color: @(t.Category?.Color ?? "#64748b")">
+                                    <i class="fa-solid @(t.Category?.Icon ?? "fa-tag") text-[10px]"></i>
+                                    @(t.Category?.Name ?? "–")
+                                </span>
+                            </td>
+                            <td class="p-4">
+                                <span class="text-xs font-bold px-2 py-1 rounded-full @(t.Type == PennyWise.Models.TransactionType.Gelir ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700")">
+                                    @t.Type
+                                </span>
+                            </td>
+                            <td class="p-4 text-slate-500 text-xs">@t.TransactionDate.ToString("dd.MM.yyyy")</td>
+                            <td class="p-4 text-right font-bold @(t.Type == PennyWise.Models.TransactionType.Gelir ? "text-emerald-500" : "text-rose-500")">
+                                @(t.Type == PennyWise.Models.TransactionType.Gelir ? "+" : "-")@t.Amount.ToString("N2") ₺
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="6" class="p-8 text-center text-slate-400">Kayıt bulunamadı.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,173 @@
+@model PennyWise.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="space-y-6">
+    <!-- Başlık -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h2 class="text-3xl font-bold text-slate-900 tracking-tight">Finansal Durum</h2>
+            <p class="text-slate-500 text-sm mt-1">Bütçenizin anlık durumu ve analiz grafikleri.</p>
+        </div>
+        <div class="flex gap-2">
+            <a asp-controller="Transaction" asp-action="Create"
+               class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-lg font-semibold shadow-md transition flex items-center gap-2 text-sm">
+                <i class="fa-solid fa-plus"></i> İşlem Ekle
+            </a>
+        </div>
+    </div>
+
+    <!-- Özet Kartları -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+            <div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Toplam Bakiye</span>
+                <h3 class="text-3xl font-bold @(Model.TotalBalance >= 0 ? "text-slate-800" : "text-rose-500") mt-2">@Model.TotalBalance.ToString("N2") ₺</h3>
+            </div>
+            <div class="p-4 bg-slate-50 rounded-2xl text-slate-600">
+                <i class="fa-solid fa-scale-balanced text-2xl"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+            <div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Aylık Toplam Gelir</span>
+                <h3 class="text-3xl font-bold text-emerald-600 mt-2">@Model.MonthlyIncome.ToString("N2") ₺</h3>
+                <span class="text-xs text-slate-400 mt-2 block">Bu Ay Gerçekleşen</span>
+            </div>
+            <div class="p-4 bg-emerald-50 rounded-2xl text-emerald-600">
+                <i class="fa-solid fa-money-bill-trend-up text-2xl"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+            <div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Aylık Toplam Gider</span>
+                <h3 class="text-3xl font-bold text-rose-500 mt-2">@Model.MonthlyExpense.ToString("N2") ₺</h3>
+                <span class="text-xs text-slate-400 mt-2 block">Bu Ay Gerçekleşen</span>
+            </div>
+            <div class="p-4 bg-rose-50 rounded-2xl text-rose-600">
+                <i class="fa-solid fa-receipt text-2xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grafikler -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="font-bold text-slate-800">Kategori Bazlı Gider Dağılımı</h4>
+                <span class="text-xs bg-slate-100 px-2.5 py-1 rounded-full text-slate-600">Bu Ay</span>
+            </div>
+            <div class="relative w-full h-64 flex justify-center items-center">
+                <canvas id="chart-categories" class="max-w-[240px] max-h-[240px]"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="font-bold text-slate-800">Gelir vs Gider Kıyaslaması</h4>
+                <span class="text-xs bg-slate-100 px-2.5 py-1 rounded-full text-slate-600">Bu Ay</span>
+            </div>
+            <div class="relative w-full h-64">
+                <canvas id="chart-balance"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Son İşlemler + Hedefler -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2">
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="font-bold text-slate-800">Son İşlemler</h4>
+                <a asp-controller="Transaction" asp-action="Index" class="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+                    Tümünü Gör <i class="fa-solid fa-chevron-right"></i>
+                </a>
+            </div>
+            <ul class="divide-y divide-slate-100">
+                @foreach (var t in Model.RecentTransactions)
+                {
+                    <li class="py-3.5 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white text-sm"
+                                 style="background-color: @(t.Category?.Color ?? "#64748b")">
+                                <i class="fa-solid @(t.Category?.Icon ?? "fa-tag")"></i>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-slate-800 text-sm">@t.Description</p>
+                                <span class="text-xs text-slate-400">@t.TransactionDate.ToString("dd.MM.yyyy")</span>
+                            </div>
+                        </div>
+                        <span class="font-bold text-sm @(t.Type == PennyWise.Models.TransactionType.Gelir ? "text-emerald-500" : "text-rose-500")">
+                            @(t.Type == PennyWise.Models.TransactionType.Gelir ? "+" : "-")@t.Amount.ToString("N2") ₺
+                        </span>
+                    </li>
+                }
+                @if (!Model.RecentTransactions.Any())
+                {
+                    <li class="py-8 text-center text-slate-400 text-sm">Henüz işlem yok.</li>
+                }
+            </ul>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="font-bold text-slate-800">Aktif Hedefler</h4>
+                <a asp-controller="Budget" asp-action="Index" class="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+                    Yönet <i class="fa-solid fa-chevron-right"></i>
+                </a>
+            </div>
+            <div class="space-y-4">
+                @foreach (var g in Model.ActiveGoals)
+                {
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between text-xs font-semibold text-slate-600">
+                            <span>@g.Name</span>
+                            <span>%@g.ProgressPercent</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2">
+                            <div class="bg-emerald-500 h-2 rounded-full" style="width: @g.ProgressPercent%"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-slate-400">
+                            <span>@g.CurrentAmount.ToString("N2") ₺ birikti</span>
+                            <span>Hedef: @g.TargetAmount.ToString("N2") ₺</span>
+                        </div>
+                    </div>
+                }
+                @if (!Model.ActiveGoals.Any())
+                {
+                    <p class="text-sm text-slate-400 text-center py-4">Henüz hedef yok.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Kategori pasta grafiği
+    const catLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartLabels));
+    const catData   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartData));
+    const catColors = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartColors));
+
+    new Chart(document.getElementById('chart-categories'), {
+        type: 'doughnut',
+        data: { labels: catLabels, datasets: [{ data: catData, backgroundColor: catColors, borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false,
+                   plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } } }
+    });
+
+    // Gelir/Gider bar grafiği
+    new Chart(document.getElementById('chart-balance'), {
+        type: 'bar',
+        data: {
+            labels: ['Aylık Gelir', 'Aylık Gider'],
+            datasets: [{ data: [@Model.MonthlyIncome, @Model.MonthlyExpense],
+                         backgroundColor: ['#10b981', '#ef4444'], borderRadius: 8, barThickness: 32 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false,
+                   plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+</script>
+}
