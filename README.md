@@ -117,3 +117,7 @@ PennyWise/
 ## 👨‍💻 Geliştirici
 
 **Esra Kang** — Bilgisayar Mühendisliği, 2025-2026 Bahar Dönemi
+**Emre Turan** — Bilgisayar Mühendisliği, 2025-2026 Bahar Dönemi
+**Ferza Er** — Bilgisayar Mühendisliği, 2025-2026 Bahar Dönemi
+
+
